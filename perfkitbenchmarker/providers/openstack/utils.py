@@ -14,16 +14,17 @@
 """Utilities for working with OpenStack Cloud resources."""
 
 
-from collections import OrderedDict
 import json
 import logging
 import socket
 import time
+from collections import OrderedDict
 
-from absl import flags
-from perfkitbenchmarker import vm_util
-import six
 import requests
+import six
+from absl import flags
+
+from perfkitbenchmarker import vm_util
 
 FLAGS = flags.FLAGS
 
