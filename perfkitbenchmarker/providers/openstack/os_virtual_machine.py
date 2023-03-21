@@ -430,6 +430,16 @@ class Ubuntu1804BasedOpenStackVirtualMachine(OpenStackVirtualMachine,
   DEFAULT_IMAGE = 'ubuntu1804'
 
 
+class Ubuntu2004BasedOpenStackVirtualMachine(OpenStackVirtualMachine,
+                                          linux_virtual_machine.Ubuntu2004Mixin):
+  DEFAULT_IMAGE = 'ubuntu2004'
+
+
+class Ubuntu2204BasedOpenStackVirtualMachine(OpenStackVirtualMachine,
+                                          linux_virtual_machine.Ubuntu2204Mixin):
+  DEFAULT_IMAGE = 'ubuntu2204'
+
+
 class ClearBasedOpenStackVirtualMachine(OpenStackVirtualMachine,
                                         linux_virtual_machine.ClearMixin):
   DEFAULT_IMAGE = 'upstream-clear'
