@@ -27,6 +27,7 @@ from perfkitbenchmarker import configs
 from perfkitbenchmarker import flag_util
 from perfkitbenchmarker import sample
 from perfkitbenchmarker import vm_util
+from perfkitbenchmarker.providers.openstack.utils import wait_for_sync_manager_green_light
 
 flag_util.DEFINE_integerlist(
     'iperf_sending_thread_count',
@@ -79,6 +80,7 @@ flags.DEFINE_float(
 flags.DEFINE_integer(
     'iperf_sleep_time', 5, 'number of seconds to sleep after each iperf test'
 )
+
 
 TCP = 'TCP'
 UDP = 'UDP'
@@ -567,11 +569,13 @@ def Run(benchmark_spec):
   Returns:
     A list of sample.Sample objects.
   """
+  if FLAGS.pkbw_sync_manager_url:
+    wait_for_sync_manager_green_light(FLAGS.pkbw_sync_manager_url, 'ready')
+    
   vms = benchmark_spec.vms
   results = []
 
   logging.info('Iperf Results:')
-
   for protocol in FLAGS.iperf_benchmarks:
     for thread_count in FLAGS.iperf_sending_thread_count:
       if thread_count < 1:

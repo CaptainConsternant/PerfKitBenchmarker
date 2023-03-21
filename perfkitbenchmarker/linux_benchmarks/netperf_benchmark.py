@@ -39,6 +39,8 @@ from perfkitbenchmarker.linux_packages import netperf
 import six
 from six.moves import zip
 
+from perfkitbenchmarker.providers.openstack.utils import wait_for_sync_manager_green_light
+
 flags.DEFINE_integer(
     'netperf_max_iter',
     None, 'Maximum number of iterations to run during '
@@ -394,6 +396,8 @@ def RunNetperf(vm, benchmark_name, server_ip, num_streams):
   Returns:
     A sample.Sample object with the result.
   """
+
+
   enable_latency_histograms = FLAGS.netperf_enable_histograms or num_streams > 1
   # Throughput benchmarks don't have latency histograms
   enable_latency_histograms = (
@@ -534,6 +538,8 @@ def Run(benchmark_spec):
   Returns:
     A list of sample.Sample objects.
   """
+  if FLAGS.pkbw_sync_manager_url:
+    wait_for_sync_manager_green_light(FLAGS.pkbw_sync_manager_url, 'ready')
   client_vm, server_vm = benchmark_spec.vms[:2]
   return RunClientServerVMs(client_vm, server_vm)
 

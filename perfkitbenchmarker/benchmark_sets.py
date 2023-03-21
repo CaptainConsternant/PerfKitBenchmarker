@@ -90,7 +90,16 @@ BENCHMARK_SETS = {
     },
     'canonical_set': {
         MESSAGE: 'Canonical benchmark set.',
-        BENCHMARK_LIST: [STANDARD_SET]
+        BENCHMARK_LIST: [
+            'cassandra_stress',
+            'coremark',
+            'fio',
+            'iperf',
+            'netperf',
+            'ping',
+            'speccpu2017',
+            'unixbench',
+        ]
     },
     'centurylinkcloud_set': {
         MESSAGE:
