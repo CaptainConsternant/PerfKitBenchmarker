@@ -137,7 +137,7 @@ def update_sync_manager(url, status):
   return res
 
 
-def wait_for_sync_manager_green_light(url, status, sleep_time=5):
+def wait_for_sync_manager_green_light(url, status, sleep_time=50):
   """Repeatidly queries canonical-pkb-wrapper sync manager and waits for a 'start' action
 
 
