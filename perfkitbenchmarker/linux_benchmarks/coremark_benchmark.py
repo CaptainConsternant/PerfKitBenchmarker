@@ -22,15 +22,14 @@ Coremark homepage: http://www.eembc.org/coremark/
 
 import logging
 import posixpath
+
 from absl import flags
-from perfkitbenchmarker import configs
-from perfkitbenchmarker import errors
-from perfkitbenchmarker import flag_util
-from perfkitbenchmarker import linux_packages
-from perfkitbenchmarker import regex_util
-from perfkitbenchmarker import sample
+
+from perfkitbenchmarker import (configs, errors, flag_util, linux_packages,
+                                regex_util, sample)
 from perfkitbenchmarker.linux_packages import coremark
-from perfkitbenchmarker.providers.openstack.utils import wait_for_sync_manager_green_light
+from perfkitbenchmarker.providers.openstack.utils import \
+    wait_for_sync_manager_green_light
 
 BENCHMARK_NAME = 'coremark'
 BENCHMARK_CONFIG = """

@@ -16,19 +16,28 @@
 from absl import flags
 
 AMAZONLINUX2 = 'amazonlinux2'
+AMAZONLINUX2023 = 'amazonlinux2023'
 AMAZON_NEURON = 'amazon_neuron'
 CENTOS7 = 'centos7'
 CENTOS8 = 'centos8'  # deprecated
 CENTOS_STREAM8 = 'centos_stream8'
 CENTOS_STREAM9 = 'centos_stream9'
 CLEAR = 'clear'
-COS = 'cos'
+COS = 'cos'  # stable
+COS105 = 'cos105'
+COS101 = 'cos101'
+COS97 = 'cos97'
+COS93 = 'cos93'
+COS_DEV = 'cos_dev'
 CORE_OS = 'core_os'
 DEBIAN9 = 'debian9'
 DEBIAN10 = 'debian10'
 DEBIAN10_BACKPORTS = 'debian10_backports'
 DEBIAN11 = 'debian11'
 DEBIAN11_BACKPORTS = 'debian11_backports'
+DEBIAN12 = 'debian12'
+FEDORA36 = 'fedora36'
+FEDORA37 = 'fedora37'
 JUJU = 'juju'
 RHEL7 = 'rhel7'
 RHEL8 = 'rhel8'
@@ -40,11 +49,12 @@ ROCKY_LINUX9_OPTIMIZED = 'rocky_linux9_optimized'
 UBUNTU_CONTAINER = 'ubuntu_container'
 UBUNTU1604 = 'ubuntu1604'  # deprecated
 UBUNTU1604_CUDA9 = 'ubuntu1604_cuda9'
-UBUNTU1804 = 'ubuntu1804'
+UBUNTU1804 = 'ubuntu1804'  # deprecated
 UBUNTU1804_EFA = 'ubuntu1804_efa'
 UBUNTU2004 = 'ubuntu2004'
 UBUNTU2004_EFA = 'ubuntu2004_efa'
 UBUNTU2204 = 'ubuntu2204'
+UBUNTU2304 = 'ubuntu2304'
 WINDOWS2012_CORE = 'windows2012_core'
 WINDOWS2016_CORE = 'windows2016_core'
 WINDOWS2019_CORE = 'windows2019_core'
@@ -72,10 +82,16 @@ WINDOWS = 'windows'
 CONTAINER_OS_TYPES = [
     CORE_OS,
     COS,
+    COS105,
+    COS101,
+    COS97,
+    COS93,
+    COS_DEV,
 ]
 
 LINUX_OS_TYPES = CONTAINER_OS_TYPES + [
     AMAZONLINUX2,
+    AMAZONLINUX2023,
     AMAZON_NEURON,
     CENTOS7,
     CENTOS8,
@@ -87,6 +103,9 @@ LINUX_OS_TYPES = CONTAINER_OS_TYPES + [
     DEBIAN10_BACKPORTS,
     DEBIAN11,
     DEBIAN11_BACKPORTS,
+    DEBIAN12,
+    FEDORA36,
+    FEDORA37,
     JUJU,
     RHEL7,
     RHEL8,
@@ -98,11 +117,12 @@ LINUX_OS_TYPES = CONTAINER_OS_TYPES + [
     UBUNTU_CONTAINER,
     UBUNTU1604,  # deprecated
     UBUNTU1604_CUDA9,
-    UBUNTU1804,
+    UBUNTU1804,  # deprecated
     UBUNTU1804_EFA,
     UBUNTU2004,
     UBUNTU2004_EFA,
     UBUNTU2204,
+    UBUNTU2304,
 ]
 
 WINDOWS_CORE_OS_TYPES = [
@@ -137,6 +157,6 @@ ALL = LINUX_OS_TYPES + WINDOWS_OS_TYPES
 BASE_OS_TYPES = [CLEAR, CORE_OS, DEBIAN, RHEL, WINDOWS]
 
 # May change from time to time.
-DEFAULT = UBUNTU1804
+DEFAULT = UBUNTU2004
 
 flags.DEFINE_enum('os_type', DEFAULT, ALL, 'The VM\'s OS type.')

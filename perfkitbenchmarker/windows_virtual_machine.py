@@ -18,7 +18,7 @@ import logging
 import ntpath
 import os
 import time
-from typing import Optional, Tuple
+from typing import Optional, Tuple, cast
 import uuid
 
 from absl import flags
@@ -28,7 +28,6 @@ from perfkitbenchmarker import os_types
 from perfkitbenchmarker import virtual_machine
 from perfkitbenchmarker import vm_util
 from perfkitbenchmarker import windows_packages
-
 import six
 import timeout_decorator
 import winrm
@@ -54,7 +53,13 @@ RDP_PORT = 3389
 # This startup script enables remote mangement of the instance. It does so
 # by creating a WinRM listener (using a self-signed cert) and opening
 # the WinRM port in the Windows firewall.
+# This script also disables the windows defender to avoid
+# interferring with the benchmarks
 _STARTUP_SCRIPT = """
+New-ItemProperty -Path "HKLM:\\SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Policies\\System" -Name 'EnableLUA' -Value 0 -PropertyType DWORD -Force
+Set-MpPreference -DisableRealtimeMonitoring $true
+Set-MpPreference -DisableBehaviorMonitoring $true
+Set-MpPreference -DisableBlockAtFirstSeen $true
 Enable-PSRemoting -Force
 $cert = New-SelfSignedCertificate -DnsName hostname -CertStoreLocation `
     Cert:\\LocalMachine\\My\\
@@ -67,16 +72,6 @@ netsh advfirewall firewall add rule name='Allow WinRM' dir=in action=allow `
 STARTUP_SCRIPT = 'powershell -EncodedCommand {encoded_command}'.format(
     encoded_command=six.ensure_str(
         base64.b64encode(_STARTUP_SCRIPT.encode('utf-16-le'))))
-
-# Cygwin constants for installing and running commands through Cygwin.
-# _CYGWIN_FORMAT provides a format string to transform a bash command into one
-# that runs under Cygwin.
-_CYGWIN32_URL = 'https://cygwin.com/setup-x86.exe'
-_CYGWIN64_URL = 'https://cygwin.com/setup-x86_64.exe'
-_CYGWIN_MIRROR = 'https://mirrors.kernel.org/sourceware/cygwin/'
-_CYGWIN_ROOT = r'%PROGRAMFILES%\cygwinx86\cygwin'
-_CYGWIN_FORMAT = (r"%s\bin\bash.exe -c 'export PATH=$PATH:/usr/bin && "
-                  "{command}'" % _CYGWIN_ROOT)
 
 
 class WaitTimeoutError(Exception):
@@ -96,11 +91,10 @@ class BaseWindowsMixin(virtual_machine.BaseOsMixin):
     self.remote_access_ports = [self.winrm_port, self.smb_port, RDP_PORT]
     self.primary_remote_access_port = self.winrm_port
     self.rdp_port_listening_time = None
-    self.temp_dir = None
-    self.home_dir = None
-    self.system_drive = None
+    self.temp_dir: str = None
+    self.home_dir: str = None
+    self.system_drive: str = None
     self.assigned_disk_letter = ATTACHED_DISK_LETTER
-    self._send_remote_commands_to_cygwin = False
 
   def RobustRemoteCommand(
       self,
@@ -165,7 +159,7 @@ class BaseWindowsMixin(virtual_machine.BaseOsMixin):
       # Spin on the VM until the "done" file is created. It is better to spin
       # on the VM rather than creating a new session for each test.
       done_out = ''
-      timeout = (
+      command_timeout = (
           None
           if timeout is None
           else timeout - (time.time() - start_command_time)
@@ -175,7 +169,7 @@ class BaseWindowsMixin(virtual_machine.BaseOsMixin):
             '$retries=0; while ((-not (Test-Path %s.done)) -and '
             '($retries -le 60)) { Start-Sleep -Seconds 1; $retries++ }; '
             'Test-Path %s.done' % (command_id, command_id),
-            timeout=timeout)
+            timeout=command_timeout)
 
     wait_for_done_file()
     stdout, _ = self.RemoteCommand('Get-Content %s.out' % (command_id,))
@@ -205,7 +199,7 @@ class BaseWindowsMixin(virtual_machine.BaseOsMixin):
       RemoteCommandError: If there was a problem issuing the command or the
           command timed out.
     """
-    logging.info('Running command on %s: %s', self, command)
+    logging.info('Running command on %s: %s', self, command, stacklevel=2)
     s = winrm.Session(
         'https://%s:%s' % (self.GetConnectionIp(), self.winrm_port),
         auth=(self.user_name, self.password),
@@ -225,7 +219,7 @@ class BaseWindowsMixin(virtual_machine.BaseOsMixin):
 
     debug_text = ('Ran %s on %s. Return code (%s).\nSTDOUT: %s\nSTDERR: %s' %
                   (command, self, retcode, stdout, stderr))
-    logging.info(debug_text)
+    logging.info(debug_text, stacklevel=2)
 
     if retcode and not ignore_failure:
       error_text = ('Got non-zero return code (%s) executing %s\n'
@@ -234,51 +228,6 @@ class BaseWindowsMixin(virtual_machine.BaseOsMixin):
       raise errors.VirtualMachine.RemoteCommandError(error_text)
 
     return stdout, stderr
-
-  def InstallCygwin(self, bit64=True, packages=None):
-    """Downloads and installs cygwin on the Windows instance.
-
-    TODO(deitz): Support installing packages via vm.Install calls where the VM
-    would look in Linux packages and try to find a CygwinInstall function to
-    call. Alternatively, consider using cyg-apt as an installation method. With
-    this additional change, we could use similar code to run benchmarks under
-    both Windows and Linux (if necessary and useful).
-
-    Args:
-      bit64: Whether to use 64-bit Cygwin (default) or 32-bit Cygwin.
-      packages: List of packages to install on Cygwin.
-    """
-    url = _CYGWIN64_URL if bit64 else _CYGWIN32_URL
-    setup_exe = url.split('/')[-1]
-    self.DownloadFile(url, setup_exe)
-    self.RemoteCommand(
-        r'.\{setup_exe} --quiet-mode --site {mirror} --root "{cygwin_root}" '
-        '--packages {packages}'.format(
-            setup_exe=setup_exe,
-            mirror=_CYGWIN_MIRROR,
-            cygwin_root=_CYGWIN_ROOT,
-            packages=','.join(packages)))
-
-  def RemoteCommandCygwin(self, command, *args, **kwargs):
-    """Runs a Cygwin command on the VM.
-
-    Args:
-      command: A valid bash command to run under Cygwin.
-      *args: Arguments passed directly to RemoteCommandWithReturnCode.
-      **kwargs: Keyword arguments passed directly to
-          RemoteCommandWithReturnCode.
-
-    Returns:
-      A tuple of stdout and stderr from running the command.
-
-    Raises:
-      RemoteCommandError: If there was a problem issuing the command or the
-          command timed out.
-    """
-    # Wrap the command to be executed via bash.exe under Cygwin. Escape quotes
-    # since they are executed in a string.
-    cygwin_command = _CYGWIN_FORMAT.format(command=command.replace('"', r'\"'))
-    return self.RemoteCommand(cygwin_command, *args, **kwargs)
 
   def RemoteCopy(self, local_path, remote_path='', copy_to=True):
     """Copies a file to or from the VM.
@@ -457,7 +406,7 @@ class BaseWindowsMixin(virtual_machine.BaseOsMixin):
     self.home_dir = stdout.strip()
     stdout, _ = self.RemoteCommand('echo $env:SystemDrive')
     self.system_drive = stdout.strip()
-    self.RemoteCommand('mkdir %s' % self.temp_dir)
+    self.RemoteCommand('mkdir %s -Force' % self.temp_dir)
     self.DisableGuestFirewall()
 
   def _Reboot(self):
@@ -506,6 +455,20 @@ class BaseWindowsMixin(virtual_machine.BaseOsMixin):
       self.Uninstall(package_name)
     self.RemoteCommand('rm -recurse -force %s' % self.temp_dir)
     self.EnableGuestFirewall()
+
+  def GetSha256sum(self, path, filename):
+    """Gets the sha256sum hash for a filename in a path on the VM.
+
+    Args:
+      path: string; Path on the VM.
+      filename: string; Name of the file in the path.
+
+    Returns:
+      string; The sha256sum hash.
+    """
+    file_path = ntpath.join(path, filename)
+    stdout, _ = self.RemoteCommand(f'certUtil -hashfile {file_path} SHA256')
+    return stdout.splitlines()[1]
 
   def WaitForProcessRunning(self, process, timeout):
     """Blocks until either the timeout passes or the process is running.
@@ -620,6 +583,9 @@ class BaseWindowsMixin(virtual_machine.BaseOsMixin):
       self.RemoteCommand('diskpart /s {script_path}'.format(
           script_path=script_path))
 
+  def _DiskDriveIsLocal(self, device, model):
+    """Helper method to determine if a disk drive is a local ssd to stripe."""
+
   def _PrepareScratchDisk(self, scratch_disk, disk_spec):
     """Helper method to format and mount scratch disk.
 
@@ -631,15 +597,44 @@ class BaseWindowsMixin(virtual_machine.BaseOsMixin):
     # create a volume, and then format and mount the volume.
     script = ''
 
+    # Get DeviceId and Model (FriendlyNam) for all disks
+    # attached to the VM except boot disk.
+    # Using Get-Disk has option to query for disks with no partition
+    # (partitionstyle -eq 'raw'). Returned Number and FriendlyName represent
+    # DeviceID and model of the disk. Device ID is used for Diskpart cleanup.
+    # https://learn.microsoft.com/en-us/powershell/module/
+    # storage/get-disk?view=windowsserver2022-ps
+    stdout, _ = self.RemoteCommand(
+        'Get-Disk | Where partitionstyle -eq \'raw\' | '
+        'Select  Number,FriendlyName'
+    )
+    query_disk_numbers = []
+    lines = stdout.splitlines()
+    for line in lines:
+      if line:
+        device, model = line.strip().split(' ', 1)
+        if 'Number' in device or '-----' in device:
+          continue
+
+        if disk_spec.disk_type == 'local':
+          if self._DiskDriveIsLocal(device, model):
+            query_disk_numbers.append(device)
+        else:
+          if not self._DiskDriveIsLocal(device, model):
+            query_disk_numbers.append(device)
+
     if scratch_disk.is_striped:
-      disk_numbers = [str(d.disk_number) for d in scratch_disk.disks]
+      disk_numbers = query_disk_numbers
     else:
-      disk_numbers = [scratch_disk.disk_number]
+      disk_numbers = query_disk_numbers[0]
 
     for disk_number in disk_numbers:
       # For each disk, set the status to online (if it is not already),
       # remove any formatting or partitioning on the disks, and convert
       # it to a dynamic disk so it can be used to create a volume.
+      # TODO(user): Fix on Azure machines with temp disk, e.g.
+      # Ebdsv5 which have 1 local disk with partitions. Perhaps this means
+      # removing the clean and convert gpt lines.
       script += ('select disk %s\n'
                  'online disk noerr\n'
                  'attributes disk clear readonly\n'
@@ -657,11 +652,19 @@ class BaseWindowsMixin(virtual_machine.BaseOsMixin):
     # mounted, format the volume, and assign the mount point to the volume.
     if disk_spec.mount_point:
       self.RemoteCommand('mkdir %s' % disk_spec.mount_point)
-      script += ('format quick\n'
+      format_command = 'format quick'
+
+      if self.OS_TYPE in os_types.WINDOWS_SQLSERVER_OS_TYPES:
+        format_command = 'format fs=ntfs quick unit=64k'
+
+      script += ('%s\n'
                  'assign letter=%s\n'
                  'assign mount=%s\n' %
-                 (ATTACHED_DISK_LETTER.lower(), disk_spec.mount_point))
+                 (format_command, ATTACHED_DISK_LETTER.lower(),
+                  disk_spec.mount_point))
 
+    # No-op, useful for understanding the state of the disks
+    self._RunDiskpartScript('list disk')
     self._RunDiskpartScript(script)
 
     # Grant user permissions on the drive
@@ -672,6 +675,12 @@ class BaseWindowsMixin(virtual_machine.BaseOsMixin):
 
     self.scratch_disks.append(scratch_disk)
 
+    if(FLAGS.gce_num_local_ssds > 0 and FLAGS.db_disk_type != 'local'):
+      self._PrepareTempDbDisk()
+
+  def _PrepareTempDbDisk(self):
+    """Helper method to format and setup disk for SQL Server TempDB."""
+
   def SetReadAhead(self, num_sectors, devices):
     """Set read-ahead value for block devices.
 
@@ -681,7 +690,7 @@ class BaseWindowsMixin(virtual_machine.BaseOsMixin):
     """
     raise NotImplementedError()
 
-  def SetProcessPriorityToHighByFlag(self, executable_name):
+  def SetProcessPriorityToHighByFlag(self, executable_name: str):
     """Sets the CPU priority for a given executable name.
 
     Note this only sets the CPU priority if FLAGS.set_cpu_priority_high is set.
@@ -700,7 +709,7 @@ class BaseWindowsMixin(virtual_machine.BaseOsMixin):
     self.RemoteCommand(command)
     executables = self.os_metadata.get('high_cpu_priority')
     if executables:
-      executables.append(executable_name)
+      cast(list[str], executables).append(executable_name)
     else:
       self.os_metadata['high_cpu_priority'] = [executable_name]
 
