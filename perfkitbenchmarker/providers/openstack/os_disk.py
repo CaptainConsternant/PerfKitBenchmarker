@@ -101,6 +101,9 @@ class OpenStackDiskSpec(disk.BaseDiskSpec):
   """
 
   CLOUD = provider_info.OPENSTACK
+  def __init__(self, *args, **kwargs):
+    super().__init__(*args, **kwargs)
+    self.disk_size: int = kwargs.get('disk_size',0)
 
   @classmethod
   def _ApplyFlags(cls, config_values, flag_values):
