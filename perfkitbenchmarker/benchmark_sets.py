@@ -82,6 +82,7 @@ BENCHMARK_SETS = {
                   'benchmarks in parallel to measure Cloud performance.'),
         BENCHMARK_LIST: [
             'fio_netperf',
+            'netperf_hammerdbcli',
         ]
     },
     'arm_set': {
@@ -152,6 +153,7 @@ BENCHMARK_SETS = {
             'copy_throughput',
             'dpdk',
             'fio',
+            'fio_netperf',
             'gpu_pcie_bandwidth',
             'hadoop_terasort',
             'horovod',
@@ -167,9 +169,9 @@ BENCHMARK_SETS = {
             'multichase',
             'mxnet',
             'netperf',
+            'netperf_hammerdbcli',
             'object_storage_service',
             'oldisim',
-            'fio_netperf',
             'pgbench',
             'ping',
             'redis_ycsb',
