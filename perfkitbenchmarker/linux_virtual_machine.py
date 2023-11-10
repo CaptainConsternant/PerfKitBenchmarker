@@ -1715,23 +1715,6 @@ class BaseLinuxMixin(virtual_machine.BaseOsMixin):
     sha256sum, _ = stdout.split()
     return sha256sum
 
-  def _GetSmbService(self):
-    """Returns the SmbService created in the benchmark spec.
-
-    Before calling this method check that the disk.disk_type is equal to
-    disk.SMB or else an exception will be raised.
-
-    Returns:
-      The smb_service.BaseSmbService service for this cloud.
-
-    Raises:
-      CreationError: If no SMB service was created.
-    """
-    smb = getattr(context.GetThreadBenchmarkSpec(), 'smb_service')
-    if smb is None:
-      raise errors.Resource.CreationError('No SMB Service created')
-    return smb
-
   def AppendKernelCommandLine(self, command_line, reboot=True):
     """Appends the provided command-line to the VM and reboots by default.
 
