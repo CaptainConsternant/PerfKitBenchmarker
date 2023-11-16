@@ -24,20 +24,18 @@ import logging
 import os
 import posixpath
 import time
+
 from absl import flags
-from perfkitbenchmarker import background_tasks
-from perfkitbenchmarker import data
-from perfkitbenchmarker import errors
-from perfkitbenchmarker import linux_packages
-from perfkitbenchmarker import os_types
-from perfkitbenchmarker.linux_packages.ant import ANT_HOME_DIR
 from six.moves import range
 
+from perfkitbenchmarker import (background_tasks, data, errors, linux_packages,
+                                os_types)
+from perfkitbenchmarker.linux_packages.ant import ANT_HOME_DIR
 
 JNA_JAR_URL = ('https://maven.java.net/content/repositories/releases/'
                'net/java/dev/jna/jna/4.1.0/jna-4.1.0.jar')
 CASSANDRA_GIT_REPRO = 'https://github.com/apache/cassandra.git'
-CASSANDRA_VERSION = 'cassandra-2.1'
+CASSANDRA_VERSION = 'cassandra-4.1'
 CASSANDRA_YAML_TEMPLATE = 'cassandra/cassandra.yaml.j2'
 CASSANDRA_ENV_TEMPLATE = 'cassandra/cassandra-env.sh.j2'
 CASSANDRA_DIR = posixpath.join(linux_packages.INSTALL_DIR, 'cassandra')
@@ -48,7 +46,7 @@ NODETOOL = posixpath.join(CASSANDRA_DIR, 'bin', 'nodetool')
 
 
 # Number of times to attempt to start the cluster.
-CLUSTER_START_TRIES = 10
+CLUSTER_START_TRIES = 10linux
 CLUSTER_START_SLEEP = 60
 # Time, in seconds, to sleep between node starts.
 NODE_START_SLEEP = 5
@@ -95,6 +93,7 @@ def _Install(vm):
     file_contents = _MAVEN_REPO_PARAMS.format(FLAGS.cassandra_maven_repo_url)
     vm.RemoteCommand('echo "{}" > {}/build.properties'.format(
         file_contents, CASSANDRA_DIR))
+  
   vm.RemoteCommand('cd {}; {}/bin/ant'.format(CASSANDRA_DIR, ANT_HOME_DIR))
   # Add JNA
   vm.RemoteCommand('cd {0} && curl -LJO {1}'.format(
@@ -109,7 +108,13 @@ def YumInstall(vm):
 
 def AptInstall(vm):
   """Installs Cassandra on the VM."""
-  _Install(vm)
+  vm.Install('openjdk')
+  vm.Install('curl')
+  vm.RemoteCommand('echo "deb https://debian.cassandra.apache.org 41x main" | sudo tee -a /etc/apt/sources.list.d/cassandra.sources.list')
+  vm.RemoteCommand('curl https://downloads.apache.org/cassandra/KEYS | sudo apt-key add -')
+  vm.RemoteCommand('sudo apt-get update')
+  vm.InstallPackages('cassandra')
+
 
 
 def JujuInstall(vm, vm_group_name):
@@ -175,6 +180,7 @@ def Start(vm):
   Args:
     vm: The target vm. Should already be configured via 'Configure'.
   """
+  # if vm.BASE_OS_TYPE==os_types.DEBIAN
   if vm.OS_TYPE == os_types.JUJU:
     return
 
