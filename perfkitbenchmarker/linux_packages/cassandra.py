@@ -46,7 +46,7 @@ NODETOOL = posixpath.join(CASSANDRA_DIR, 'bin', 'nodetool')
 
 
 # Number of times to attempt to start the cluster.
-CLUSTER_START_TRIES = 10linux
+CLUSTER_START_TRIES = 10
 CLUSTER_START_SLEEP = 60
 # Time, in seconds, to sleep between node starts.
 NODE_START_SLEEP = 5
