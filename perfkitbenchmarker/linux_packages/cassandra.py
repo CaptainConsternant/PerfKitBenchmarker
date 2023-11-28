@@ -110,6 +110,7 @@ def AptInstall(vm):
   """Installs Cassandra on the VM."""
   vm.Install('openjdk')
   vm.Install('curl')
+  vm.RemoteCommand(f'mkdir -p {CASSANDRA_DIR}/conf')
   vm.RemoteCommand('echo "deb https://debian.cassandra.apache.org 41x main" | sudo tee -a /etc/apt/sources.list.d/cassandra.sources.list')
   vm.RemoteCommand('curl https://downloads.apache.org/cassandra/KEYS | sudo apt-key add -')
   vm.RemoteCommand('sudo apt-get update')
@@ -183,6 +184,9 @@ def Start(vm):
   # if vm.BASE_OS_TYPE==os_types.DEBIAN
   if vm.OS_TYPE == os_types.JUJU:
     return
+  elif "ubuntu" in vm.OS_TYPE or "debian" in vm.OS_TYPE:
+    return
+
 
   vm.RemoteCommand(
       'nohup {0}/bin/cassandra -p "{1}" 1> {2} 2> {3} &'.format(
@@ -200,6 +204,14 @@ def Stop(vm):
 
 def IsRunning(vm):
   """Returns a boolean indicating whether Cassandra is running on 'vm'."""
+
+  if "ubuntu" in vm.OS_TYPE or "debian" in vm.OS_TYPE:
+    state = vm.RemoteCommand("systemctl is-active cassandra")
+    if state == "active":
+      return True
+    else :
+      return False
+  
   cassandra_pid = vm.RemoteCommand(
       'cat {0} || true'.format(CASSANDRA_PID))[0].strip()
   if not cassandra_pid:
@@ -242,6 +254,8 @@ def GetCassandraCliPath(vm):
     # Replace the stock CASSANDRA_CLI so that it uses the binary
     # installed by the cassandra charm.
     return '/usr/bin/cassandra-cli'
+  elif "ubuntu" in vm.OS_TYPE or "debian" in vm.OS_TYPE:
+    return '/usr/bin/cassandra-cli'
 
   return posixpath.join(CASSANDRA_DIR, 'bin',
                         'cassandra-cli')
@@ -251,6 +265,8 @@ def GetCassandraStressPath(vm):
   if vm.OS_TYPE == os_types.JUJU:
     # Replace the stock CASSANDRA_STRESS so that it uses the binary
     # installed by the cassandra-stress charm.
+    return '/usr/bin/cassandra-stress'
+  elif "ubuntu" in vm.OS_TYPE or "debian" in vm.OS_TYPE:
     return '/usr/bin/cassandra-stress'
 
   return posixpath.join(CASSANDRA_DIR, 'tools', 'bin',
@@ -284,7 +300,8 @@ def StartCluster(seed_vm, vms):
   if seed_vm.OS_TYPE == os_types.JUJU:
     # Juju automatically configures and starts the Cassandra cluster.
     return
-
+  elif "ubuntu" in seed_vm.OS_TYPE or "debian" in seed_vm.OS_TYPE:
+    return
   vm_count = len(vms) + 1
 
   # Cassandra setup

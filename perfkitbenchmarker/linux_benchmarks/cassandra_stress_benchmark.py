@@ -26,17 +26,13 @@ import logging
 import math
 import posixpath
 import time
+
 from absl import flags
-from perfkitbenchmarker import background_tasks
-from perfkitbenchmarker import configs
-from perfkitbenchmarker import data
-from perfkitbenchmarker import errors
-from perfkitbenchmarker import regex_util
-from perfkitbenchmarker import sample
-from perfkitbenchmarker import vm_util
-from perfkitbenchmarker.linux_packages import cassandra
 from six.moves import range
 
+from perfkitbenchmarker import (background_tasks, configs, data, errors,
+                                regex_util, sample, vm_util)
+from perfkitbenchmarker.linux_packages import cassandra
 
 NUM_KEYS_PER_CORE = 2000000
 PROPAGATION_WAIT_TIME = 30
@@ -376,8 +372,8 @@ def RunTestOnLoader(vm, loader_index, operations_per_vm, data_node_ips,
     schema_option = '-schema replication\(factor={replication_factor}\)'.format(
         replication_factor=FLAGS.cassandra_stress_replication_factor)
 
-  population_range = '%s..%s' % (loader_index * population_per_vm + 1,
-                                 (loader_index + 1) * population_per_vm)
+  population_range = '%s..%s' % (int(loader_index * population_per_vm + 1),
+                                 int((loader_index + 1) * population_per_vm))
   if population_params:
     population_params = '%s,%s' % (population_range, population_params)
   else:
