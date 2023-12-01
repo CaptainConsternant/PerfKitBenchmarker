@@ -58,13 +58,17 @@ PARALLELISM_PTHREAD = 'PTHREAD'
 PARALLELISM_FORK = 'FORK'
 PARALLELISM_SOCKET = 'SOCKET'
 _COREMARK_PARALLELISM_METHOD = flags.DEFINE_enum(
-    'coremark_parallelism_method', PARALLELISM_PTHREAD,
+    'coremark_parallelism_method',
+    PARALLELISM_PTHREAD,
     [PARALLELISM_PTHREAD, PARALLELISM_FORK, PARALLELISM_SOCKET],
-    'Method to use for parallelism in the Coremark benchmark.')
+    'Method to use for parallelism in the Coremark benchmark.',
+)
 flag_util.DEFINE_integerlist(
-    'coremark_thread_counts', [0, 1],
+    'coremark_thread_counts',
+    [0, 1],
     'Runs n-threaded Coremark for each element n in the list. If n=0, '
-    'vm.NumCpusForBenchmark() is used.')
+    'vm.NumCpusForBenchmark() is used.',
+)
 
 FLAGS = flags.FLAGS
 
@@ -85,8 +89,10 @@ def PrepareCoremark(remote_command):
     remote_command: Function to run a remote command on the VM.
   """
   if _COREMARK_PARALLELISM_METHOD.value == PARALLELISM_PTHREAD:
-    remote_command('sed -i -e "s/LFLAGS_END += -lrt/LFLAGS_END += -lrt '
-                   '-lpthread/g" %s/%s' % (COREMARK_DIR, COREMARK_BUILDFILE))
+    remote_command(
+        'sed -i -e "s/LFLAGS_END += -lrt/LFLAGS_END += -lrt -lpthread/g" %s/%s'
+        % (COREMARK_DIR, COREMARK_BUILDFILE)
+    )
 
 
 def Prepare(benchmark_spec):
@@ -177,8 +183,9 @@ def Run(benchmark_spec):
   vm = benchmark_spec.vms[0]
   output_samples = []
   for thread_count in FLAGS.coremark_thread_counts:
-    thread_count_arg = vm.NumCpusForBenchmark() if (thread_count
-                                                    == 0) else thread_count
+    thread_count_arg = (
+        vm.NumCpusForBenchmark() if (thread_count == 0) else thread_count
+    )
     output_samples += RunCoremark(vm.RemoteCommand, thread_count_arg)
 
   return output_samples

@@ -55,12 +55,13 @@ def Prepare(benchmark_spec):  # pylint: disable=unused-argument
   Checks that there are exactly two vms specified.
   Args:
     benchmark_spec: The benchmark specification. Contains all data that is
-        required to run the benchmark.
+      required to run the benchmark.
   """
   if len(benchmark_spec.vms) != 2:
     raise ValueError(
         'Ping benchmark requires exactly two machines, '
-        f'found {len(benchmark_spec.vms)}')
+        f'found {len(benchmark_spec.vms)}'
+    )
   if vm_util.ShouldRunOnExternalIpAddress():
     vms = benchmark_spec.vms
     for vm in vms:
@@ -72,7 +73,7 @@ def Run(benchmark_spec):
 
   Args:
     benchmark_spec: The benchmark specification. Contains all data that is
-        required to run the benchmark.
+      required to run the benchmark.
 
   Returns:
     A list of sample.Sample objects.
@@ -85,16 +86,14 @@ def Run(benchmark_spec):
   for sending_vm, receiving_vm in vms, reversed(vms):
     if vm_util.ShouldRunOnExternalIpAddress():
       ip_type = vm_util.IpAddressMetadata.EXTERNAL
-      results = results + _RunPing(sending_vm,
-                                   receiving_vm,
-                                   receiving_vm.ip_address,
-                                   ip_type)
+      results = results + _RunPing(
+          sending_vm, receiving_vm, receiving_vm.ip_address, ip_type
+      )
     if vm_util.ShouldRunOnInternalIpAddress(sending_vm, receiving_vm):
       ip_type = vm_util.IpAddressMetadata.INTERNAL
-      results = results + _RunPing(sending_vm,
-                                   receiving_vm,
-                                   receiving_vm.internal_ip,
-                                   ip_type)
+      results = results + _RunPing(
+          sending_vm, receiving_vm, receiving_vm.internal_ip, ip_type
+      )
   return results
 
 
@@ -105,15 +104,16 @@ def _RunPing(sending_vm, receiving_vm, receiving_ip, ip_type):
     sending_vm: The VM issuing the ping request.
     receiving_vm: The VM receiving the ping.  Needed for metadata.
     receiving_ip: The IP address to be pinged.
-    ip_type: The type of 'receiving_ip',
-        (either 'vm_util.IpAddressSubset.INTERNAL
-         or vm_util.IpAddressSubset.EXTERNAL')
+    ip_type: The type of 'receiving_ip', (either
+      'vm_util.IpAddressSubset.INTERNAL or vm_util.IpAddressSubset.EXTERNAL')
 
   Returns:
     A list of samples, with one sample for each metric.
   """
-  if (ip_type == vm_util.IpAddressMetadata.INTERNAL and
-      not sending_vm.IsReachable(receiving_vm)):
+  if (
+      ip_type == vm_util.IpAddressMetadata.INTERNAL
+      and not sending_vm.IsReachable(receiving_vm)
+  ):
     logging.warning('%s is not reachable from %s', receiving_vm, sending_vm)
     return []
 
@@ -124,9 +124,11 @@ def _RunPing(sending_vm, receiving_vm, receiving_ip, ip_type):
   assert len(stats) == len(METRICS), stats
   results = []
 
-  metadata = {'ip_type': ip_type,
-              'receiving_zone': receiving_vm.zone,
-              'sending_zone': sending_vm.zone}
+  metadata = {
+      'ip_type': ip_type,
+      'receiving_zone': receiving_vm.zone,
+      'sending_zone': sending_vm.zone,
+  }
   for i, metric in enumerate(METRICS):
     results.append(sample.Sample(metric, float(stats[i]), 'ms', metadata))
   return results
@@ -137,6 +139,6 @@ def Cleanup(benchmark_spec):  # pylint: disable=unused-argument
 
   Args:
     benchmark_spec: The benchmark specification. Contains all data that is
-        required to run the benchmark.
+      required to run the benchmark.
   """
   pass

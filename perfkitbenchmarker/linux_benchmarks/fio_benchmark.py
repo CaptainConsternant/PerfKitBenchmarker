@@ -951,9 +951,10 @@ def PrepareWithExec(vm, exec_path):
 def Run(benchmark_spec):
   """Spawn fio on vm(s) and gather results."""
   if FLAGS.pkbw_sync_manager_url:
-      wait_for_sync_manager_green_light(FLAGS.pkbw_sync_manager_url, "ready")
+    wait_for_sync_manager_green_light(FLAGS.pkbw_sync_manager_url, "ready")
   vms = benchmark_spec.vms
   return RunFioOnVMs(vms)
+
 
 def RunFioOnVMs(vms):
   """Spawn fio on vm(s) and gather results.
