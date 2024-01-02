@@ -29,8 +29,8 @@ ANT_TAR_URL = 'https://archive.apache.org/dist/ant/binaries/' + ANT_TAR
 
 PACKAGE_NAME = 'ant'
 PREPROVISIONED_DATA = {
-    ANT_TAR:
-        '90d28c0202871bd9875a5da6d982f362bb3114d346b9d8ae58860b8d3312c21c'}
+    ANT_TAR: '90d28c0202871bd9875a5da6d982f362bb3114d346b9d8ae58860b8d3312c21c'
+}
 PACKAGE_DATA_URL = {ANT_TAR: ANT_TAR_URL}
 ANT_HOME_DIR = posixpath.join(linux_packages.INSTALL_DIR, PACKAGE_NAME)
 
