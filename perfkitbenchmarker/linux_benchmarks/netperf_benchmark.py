@@ -123,7 +123,7 @@ flags.register_validator(
     lambda benchmarks: benchmarks and set(benchmarks).issubset(ALL_BENCHMARKS),
 )
 
-flag_util.DEFINE_list(
+flags.DEFINE_list(
     'netperf_latency_percentiles', [50, 90, 99], 'Latency percentiles to calculate/report'
 )
 
