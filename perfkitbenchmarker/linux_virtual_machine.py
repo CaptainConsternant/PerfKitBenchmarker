@@ -3404,6 +3404,10 @@ class JujuMixin(BaseDebianMixin):
     """Installs a PerfKit package on the VM."""
     package = linux_packages.PACKAGES[package_name]
     try:
+
+      if self.controller is None:
+        raise ValueError('self.controller is None')
+
       # Make sure another unit doesn't try
       # to install the charm at the same time
       with self.controller.installation_lock:
