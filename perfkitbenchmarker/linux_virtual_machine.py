@@ -2864,12 +2864,6 @@ class Ubuntu2204Mixin(BaseUbuntuMixin):
   OS_TYPE = os_types.UBUNTU2204
 
 
-class Ubuntu2304Mixin(BaseUbuntuMixin):
-  """Class holding Ubuntu2304 specific VM methods and attributes."""
-
-  OS_TYPE = os_types.UBUNTU2304
-
-
 class Ubuntu2310Mixin(BaseUbuntuMixin):
   """Class holding Ubuntu2310 specific VM methods and attributes."""
 
