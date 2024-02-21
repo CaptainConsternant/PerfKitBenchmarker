@@ -255,7 +255,7 @@ def Run(benchmark_spec):
     A list of sample.Sample objects.
   """
   if FLAGS.pkbw_sync_manager_url:
-      wait_for_sync_manager_green_light(FLAGS.pkbw_sync_manager_url, "ready")
+    wait_for_sync_manager_green_light(FLAGS.pkbw_sync_manager_url, "ready")
   clients = benchmark_spec.vm_groups['clients']
   num_client_vms = len(clients)
   servers = benchmark_spec.vm_groups['workers']
