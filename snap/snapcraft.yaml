@@ -27,4 +27,4 @@ parts:
 
 apps:
   run:
-    command: bin/python perfkitbenchmarker/pkb.py
+    command: bin/python pkb.py
