@@ -15,7 +15,7 @@ grade: devel # must be 'stable' to release into candidate/stable channels
 confinement: devmode # use 'strict' once you have the right plugs and slots
 
 parts:
-  pkb:
+  venv:
     # See 'snapcraft plugins'
     plugin: python
     source-type: local
@@ -24,7 +24,11 @@ parts:
       - requirements.txt
       - perfkitbenchmarker/providers/openstack/requirements.txt
       - perfkitbenchmarker/providers/aws/requirements.txt
+  source:
+    plugin: dump
+    source: .
+
 
 apps:
   run:
-    command: bin/python pkb.py
+    command: bin/python $SNAP/pkb.py
